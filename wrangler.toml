@@ -1,0 +1,5 @@
+# Конфиг Cloudflare Worker (деплой из GitHub: npx wrangler deploy).
+# Воркер — прокси перед GitHub Pages (обход POST/405 для iframe Битрикс24).
+name = "gbh-report1"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-11-11"
