@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Установка приложения «Отчёт 1»</title>
+  <script src="//api.bitrix24.com/api/v1/"></script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="layout" style="display:block">
+    <div class="block" style="max-width:560px;margin:40px auto">
+      <h3>Установка приложения «Отчёт 1: Воронка продаж»</h3>
+      <div id="install-status" class="status">Идёт установка…</div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script>
+  /* Обработчик установки локального приложения.
+   * Регистрирует placement (если CONFIG.placement.enabled) и завершает установку. */
+  (function () {
+    var statusEl = document.getElementById('install-status');
+    function done(msg) { statusEl.textContent = msg; }
+
+    BX24.init(function () {
+      var finish = function () {
+        if (typeof BX24.installFinish === 'function') BX24.installFinish();
+        done('Установка завершена. Приложение доступно в левом меню.');
+      };
+
+      if (!CONFIG.placement.enabled) { finish(); return; }
+
+      // привязываем место (вкладку/пункт меню) внутри Битрикс24.
+      // HANDLER строим относительно текущего адреса — корректно и на под-пути
+      // GitHub Pages (например, /<repo>/index.html).
+      var handler = new URL('index.html', location.href).href;
+      BX24.callMethod('placement.bind', {
+        PLACEMENT: CONFIG.placement.PLACEMENT,
+        HANDLER: handler,
+        TITLE: CONFIG.placement.TITLE,
+      }, function (res) {
+        if (res.error()) done('placement.bind: ' + res.error_description());
+        finish();
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

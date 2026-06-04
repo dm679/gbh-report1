@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Отчёт 1: Динамика и конверсия воронки продаж</title>
+
+  <!-- BX24 JS SDK (работает внутри iframe Битрикс24). В режиме webhook не нужен. -->
+  <script src="//api.bitrix24.com/api/v1/"></script>
+  <!-- ECharts -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div id="overlay" class="overlay"><div class="spinner"></div></div>
+
+<!-- ======================= ЗАГОЛОВОК ======================= -->
+<header class="app-header">
+  <h1>ОТЧЁТ 1 — Динамика и конверсия</h1>
+  <div class="header-actions">
+    <button id="btn-print" class="btn ghost" title="Печать / PDF">PDF</button>
+    <button id="btn-cache-clear" class="btn ghost" title="Сбросить кэш справочников">Сбросить кэш</button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- ======================= ФИЛЬТРЫ ======================= -->
+  <aside id="filters" class="filters">
+    <h2>ФИЛЬТРЫ</h2>
+
+    <div class="f-group">
+      <label class="f-title">Тип даты</label>
+      <label class="radio"><input type="radio" name="dateType" value="DATE_CREATE"> Создание</label>
+      <label class="radio"><input type="radio" name="dateType" value="DATE_MODIFY"> Изменение</label>
+      <label class="radio"><input type="radio" name="dateType" value="CLOSEDATE"> Завершение</label>
+    </div>
+
+    <div class="f-group">
+      <label class="f-title">Период</label>
+      <div class="row2">
+        <label>От <input type="date" id="f-from"></label>
+        <label>До <input type="date" id="f-to"></label>
+      </div>
+      <div class="hint" id="gran-hint"></div>
+    </div>
+
+    <div class="f-group">
+      <label class="f-title">Воронка</label>
+      <select id="f-categories" multiple size="4"></select>
+    </div>
+
+    <div class="f-group">
+      <label class="f-title">Этап воронки</label>
+      <select id="f-stages" multiple size="4"></select>
+    </div>
+
+    <div class="f-group">
+      <label class="f-title">Сумма, USD</label>
+      <div class="row2">
+        <label>От <input type="number" id="f-sum-from" min="0" step="1000" placeholder="0"></label>
+        <label>До <input type="number" id="f-sum-to" min="0" step="1000" placeholder="∞"></label>
+      </div>
+    </div>
+
+    <div class="f-group">
+      <label class="f-title">Менеджер</label>
+      <select id="f-managers" multiple size="4"></select>
+    </div>
+
+    <div class="f-group" id="wrap-project">
+      <label class="f-title">Проект</label>
+      <select id="f-project" multiple size="3"></select>
+    </div>
+
+    <div class="f-group" id="wrap-agency">
+      <label class="f-title">Агентство</label>
+      <select id="f-agency" multiple size="3"></select>
+    </div>
+
+    <div class="f-group" id="wrap-agent">
+      <label class="f-title">Агент</label>
+      <select id="f-agent" multiple size="3"></select>
+    </div>
+
+    <div class="f-actions">
+      <button id="btn-apply" class="btn primary">Построить</button>
+      <button id="btn-reset" class="btn ghost">Сбросить</button>
+    </div>
+  </aside>
+
+  <!-- ======================= ОТЧЁТ ======================= -->
+  <main class="report">
+    <div id="status" class="status"></div>
+
+    <!-- ВЕРХНЯЯ ПОЛОСА: A (KPI) + B (коридоры) + сегменты (ПО ПРОЕКТАМ) -->
+    <section class="topband">
+      <!-- A. Сводные -->
+      <div class="band-group">
+        <div class="band-title">По сделкам</div>
+        <div class="band-cards">
+          <div class="card accent kpi">
+            <div class="kpi-label">Сумма по сделкам (USD)</div>
+            <div class="kpi-value" id="kpi-total">$0</div>
+          </div>
+          <div class="card accent kpi">
+            <div class="kpi-label">Средний чек</div>
+            <div class="kpi-value" id="kpi-avg">$0</div>
+          </div>
+        </div>
+        <div class="band-foot" id="kpi-count">0 шт</div>
+      </div>
+
+      <!-- B. Сегментация по суммам -->
+      <div class="band-group">
+        <div class="band-title">
+          По карточкам сделок
+          <span class="exp">
+            <button class="btn xs" data-export="b" data-format="csv">CSV</button>
+            <button class="btn xs" data-export="b" data-format="xls">Excel</button>
+          </span>
+        </div>
+        <div id="corridors" class="band-cards corridors"></div>
+      </div>
+
+      <!-- Сегменты (карточки по разрезу) -->
+      <div class="band-group grow">
+        <div class="band-title">
+          <span id="seg-title">ПО ПРОЕКТАМ</span>
+          <span class="block-tools">
+            <select id="seg-breakdown" class="mini">
+              <option value="projects">Проекты</option>
+              <option value="managers">Менеджеры</option>
+              <option value="funnels">Воронки</option>
+              <option value="agencies">Агентства</option>
+              <option value="agents">Агенты</option>
+            </select>
+            <span class="seg small">
+              <label class="radio"><input type="radio" name="segMetric" value="sum" checked> Сумма</label>
+              <label class="radio"><input type="radio" name="segMetric" value="count"> Кол-во</label>
+            </span>
+          </span>
+        </div>
+        <div id="segments" class="band-cards seg-cards"></div>
+      </div>
+    </section>
+
+    <!-- РЯД ГРАФИКОВ: C (динамика) | D (воронка) -->
+    <section class="analytics">
+      <!-- C. Динамика -->
+      <div class="block">
+        <div class="block-head">
+          <h3>Динамика</h3>
+          <div class="block-tools">
+            <label class="mini-wrap">Разрез:
+              <select id="c-breakdown" class="mini">
+                <option value="projects">Проекты</option>
+                <option value="managers">Менеджеры</option>
+                <option value="funnels">Воронки</option>
+                <option value="agencies">Агентства</option>
+                <option value="agents">Агенты</option>
+              </select>
+            </label>
+            <span class="exp">
+              <button class="btn xs" data-export="c" data-format="csv">CSV</button>
+              <button class="btn xs" data-export="c" data-format="xls">Excel</button>
+            </span>
+          </div>
+        </div>
+        <div id="chart-line" class="chart"></div>
+      </div>
+
+      <!-- D. Воронка -->
+      <div class="block">
+        <div class="block-head">
+          <h3>Воронка</h3>
+          <div class="block-tools">
+            <span class="seg small">
+              <label class="radio"><input type="radio" name="funnelMetric" value="count" checked> Кол-во</label>
+              <label class="radio"><input type="radio" name="funnelMetric" value="sum"> Сумма</label>
+            </span>
+            <span class="exp">
+              <button class="btn xs" data-export="d" data-format="csv">CSV</button>
+              <button class="btn xs" data-export="d" data-format="xls">Excel</button>
+            </span>
+          </div>
+        </div>
+        <div id="funnel-warning" class="warning" style="display:none"></div>
+        <div id="funnel-wrap">
+          <div id="funnel-note" class="note"></div>
+          <div id="chart-funnel" class="chart"></div>
+          <div class="tbl-scroll">
+            <table class="tbl">
+              <thead><tr>
+                <th>Этап</th><th class="num">Кол-во</th><th class="num">Сумма (USD)</th>
+                <th class="num">Конв. кол-во</th><th class="num">Конв. сумма</th>
+              </tr></thead>
+              <tbody id="funnel-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- E. Источники -->
+    <section class="block">
+      <div class="block-head">
+        <h3>Распределение по источникам</h3>
+        <span class="exp">
+          <button class="btn xs" data-export="e" data-format="csv">CSV</button>
+          <button class="btn xs" data-export="e" data-format="xls">Excel</button>
+        </span>
+      </div>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead><tr>
+            <th>Источник</th><th class="num">Сумма (USD)</th>
+            <th class="num">Кол-во</th><th class="num">Ср. чек</th>
+          </tr></thead>
+          <tbody id="sources-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Скрипты в порядке зависимостей -->
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/bx24.js"></script>
+<script src="js/data.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/report.js"></script>
+<script src="js/export.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
