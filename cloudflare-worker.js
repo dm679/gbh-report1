@@ -21,13 +21,19 @@ export default {
     let path = url.pathname;
     if (path === '/' || path === '') path = '/index.html';
 
-    // всегда GET к GitHub Pages (конвертируем POST Битрикса)
-    const upstream = await fetch(BASE + path + url.search, { method: 'GET' });
+    // всегда GET к GitHub Pages (конвертируем POST Битрикса).
+    // cacheTtl:0 — не кэшировать на edge, иначе после деплоя файлы рассинхронятся.
+    const upstream = await fetch(BASE + path + url.search, {
+      method: 'GET',
+      cf: { cacheTtl: 0, cacheEverything: false },
+    });
 
-    // отдаём как есть, но снимаем заголовки, запрещающие встраивание в iframe
+    // отдаём как есть, но снимаем заголовки, запрещающие встраивание в iframe,
+    // и просим клиента не кэшировать (всегда свежая версия приложения)
     const headers = new Headers(upstream.headers);
     headers.delete('content-security-policy');
     headers.delete('x-frame-options');
+    headers.set('Cache-Control', 'no-cache, must-revalidate');
     return new Response(upstream.body, { status: upstream.status, headers });
   },
 };
