@@ -53,6 +53,27 @@ window.FILTERS = (function () {
     return Array.from(el.selectedOptions).map((o) => o.value);
   }
 
+  /* Поиск по мульти-списку: скрываем несовпадающие опции через атрибут hidden.
+   * Выбранные (даже скрытые) опции остаются в selectedOptions — выбор не теряется. */
+  function filterSelectOptions(select, q) {
+    q = (q || '').trim().toLowerCase();
+    Array.from(select.options).forEach((o) => {
+      o.hidden = !!q && o.textContent.toLowerCase().indexOf(q) === -1;
+    });
+  }
+  function reapplySearch(targetId) {
+    const inp = document.querySelector('.f-search[data-target="' + targetId + '"]');
+    const sel = document.getElementById(targetId);
+    if (inp && sel) filterSelectOptions(sel, inp.value);
+  }
+  function wireSearch() {
+    document.querySelectorAll('.f-search').forEach((inp) => {
+      const sel = document.getElementById(inp.getAttribute('data-target'));
+      if (!sel) return;
+      inp.addEventListener('input', () => filterSelectOptions(sel, inp.value));
+    });
+  }
+
   /* Список этапов зависит от выбранных воронок */
   function stagesForSelected() {
     const cats = state.categories.length
@@ -74,6 +95,7 @@ window.FILTERS = (function () {
   function rebuildStageOptions() {
     const el = document.getElementById('f-stages');
     optionList(el, stagesForSelected(), state.stages);
+    reapplySearch('f-stages');
   }
 
   /* --- инициализация панели ----------------------------------------------- */
@@ -141,6 +163,9 @@ window.FILTERS = (function () {
       onApply(getState());
     });
     document.getElementById('btn-reset').addEventListener('click', resetFilters);
+
+    // поиск во всех мульти-списках
+    wireSearch();
   }
 
   function setupUfFilter(key, selectId, wrapId) {
@@ -178,7 +203,7 @@ window.FILTERS = (function () {
     Object.keys(map).forEach((key) => {
       if (!CONFIG.ufEnabled[key]) return;
       const el = document.getElementById(map[key]);
-      if (el) optionList(el, (ufValues && ufValues[key]) || [], state[key]);
+      if (el) { optionList(el, (ufValues && ufValues[key]) || [], state[key]); reapplySearch(map[key]); }
     });
   }
 

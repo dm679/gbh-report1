@@ -200,11 +200,26 @@ body {
   .corridors .corridor { min-width: 45%; }
 }
 
+/* --- поиск в фильтрах --- */
+.f-search { width: 100%; height: 32px; padding: 0 8px; margin-bottom: 6px;
+  border: 1px solid var(--border); border-radius: 8px; font: inherit; background: #fff; }
+.f-search:focus { outline: none; border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(124,58,237,.15); }
+
+/* --- шапка параметров (только печать) --- */
+.print-summary { display: none; }
+.print-summary .ps-title { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+.print-summary .ps-row { font-size: 12px; line-height: 1.5; }
+.print-summary .ps-row span { color: #555; font-weight: 600; }
+
 /* --- печать (PDF) --- */
 @media print {
-  .filters, .header-actions, .exp, .block-tools .seg, .block-tools select,
-  #overlay, .status { display: none !important; }
+  .filters, .header-actions, .exp, .block-tools, .block-tools .seg,
+  .block-tools select, .f-search, #overlay, .status { display: none !important; }
   .layout { display: block; padding: 0; }
-  .analytics { grid-template-columns: 1fr 1fr; }
-  .block, .band-group { break-inside: avoid; box-shadow: none; }
+  /* графики друг под другом — иначе воронка наезжает на динамику */
+  .analytics { grid-template-columns: 1fr; }
+  .block, .band-group { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
+  .print-summary { display: block; margin: 0 0 14px; padding: 12px 14px;
+    border: 1px solid var(--border); border-radius: 10px; }
 }

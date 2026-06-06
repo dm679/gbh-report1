@@ -110,6 +110,14 @@ window.UTIL = (function () {
     const v = Math.round(Number(n) || 0);
     return '$' + v.toLocaleString('ru-RU');
   }
+  /* Компактный формат для осей/подписей: $0 / $300k / $1.2M */
+  function moneyShort(n) {
+    const v = Number(n) || 0;
+    const a = Math.abs(v);
+    if (a >= 1e6) return '$' + (Math.round(v / 1e5) / 10) + 'M';
+    if (a >= 1e3) return '$' + Math.round(v / 1e3) + 'k';
+    return '$' + Math.round(v);
+  }
   function num(n) {
     return (Number(n) || 0).toLocaleString('ru-RU');
   }
@@ -126,6 +134,6 @@ window.UTIL = (function () {
 
   return {
     pad, toYMD, parseDate, startOfWeek, bucketKey, bucketLabel, bucketRange,
-    autoGranularity, previousRange, previousPeriod, money, num, pct, esc,
+    autoGranularity, previousRange, previousPeriod, money, moneyShort, num, pct, esc,
   };
 })();

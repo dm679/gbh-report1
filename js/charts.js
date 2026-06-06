@@ -42,15 +42,30 @@ window.CHARTS = (function () {
     });
 
     lineChart.setOption({
-      tooltip: { trigger: 'axis' },
+      tooltip: {
+        trigger: 'axis',
+        // суммы форматируем как деньги, количество — целым числом
+        formatter: function (params) {
+          if (!params || !params.length) return '';
+          let html = UTIL.esc(params[0].axisValue) + '<br/>';
+          params.forEach((p) => {
+            const isSum = /Сумма/.test(p.seriesName);
+            const val = isSum ? UTIL.moneyShort(p.value) : (UTIL.num(p.value) + ' шт');
+            html += `${p.marker} ${UTIL.esc(p.seriesName)}: <b>${val}</b><br/>`;
+          });
+          return html;
+        },
+      },
       // легенда внизу со скроллом — не пересекается с осями/графиком
       legend: { data: legend, type: 'scroll', bottom: 0, left: 'center', itemGap: 14 },
-      grid: { left: 58, right: 52, top: 28, bottom: 56 },
+      grid: { left: 64, right: 52, top: 28, bottom: 56 },
       xAxis: { type: 'category', data: x, boundaryGap: false },
       yAxis: [
         { type: 'value', name: 'Сумма, $', nameGap: 14, position: 'left',
-          axisLabel: { formatter: (v) => '$' + (v / 1000) + 'k' } },
-        { type: 'value', name: 'Кол-во', nameGap: 14, position: 'right', splitLine: { show: false } },
+          min: 0, minInterval: 1,
+          axisLabel: { formatter: (v) => UTIL.moneyShort(v) } },
+        { type: 'value', name: 'Кол-во', nameGap: 14, position: 'right',
+          min: 0, minInterval: 1, splitLine: { show: false } },
       ],
       series,
     }, true);

@@ -48,11 +48,13 @@
 
     <div class="f-group">
       <label class="f-title">Воронка</label>
+      <input type="search" class="f-search" data-target="f-categories" placeholder="поиск…">
       <select id="f-categories" multiple size="4"></select>
     </div>
 
     <div class="f-group">
       <label class="f-title">Этап воронки</label>
+      <input type="search" class="f-search" data-target="f-stages" placeholder="поиск…">
       <select id="f-stages" multiple size="4"></select>
     </div>
 
@@ -66,21 +68,25 @@
 
     <div class="f-group">
       <label class="f-title">Менеджер</label>
+      <input type="search" class="f-search" data-target="f-managers" placeholder="поиск…">
       <select id="f-managers" multiple size="4"></select>
     </div>
 
     <div class="f-group" id="wrap-project">
       <label class="f-title">Проект</label>
+      <input type="search" class="f-search" data-target="f-project" placeholder="поиск…">
       <select id="f-project" multiple size="3"></select>
     </div>
 
     <div class="f-group" id="wrap-agency">
       <label class="f-title">Агентство</label>
+      <input type="search" class="f-search" data-target="f-agency" placeholder="поиск…">
       <select id="f-agency" multiple size="3"></select>
     </div>
 
     <div class="f-group" id="wrap-agent">
       <label class="f-title">Агент</label>
+      <input type="search" class="f-search" data-target="f-agent" placeholder="поиск…">
       <select id="f-agent" multiple size="3"></select>
     </div>
 
@@ -93,6 +99,9 @@
   <!-- ======================= ОТЧЁТ ======================= -->
   <main class="report">
     <div id="status" class="status"></div>
+
+    <!-- Параметры фильтра — видны только в печати/PDF -->
+    <div id="print-summary" class="print-summary"></div>
 
     <!-- ВЕРХНЯЯ ПОЛОСА: A (KPI) + B (коридоры) + сегменты (ПО ПРОЕКТАМ) -->
     <section class="topband">

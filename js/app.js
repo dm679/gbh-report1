@@ -169,6 +169,9 @@
       setStatus('Кэш справочников очищен. Перезагрузите страницу.', false);
     });
     window.addEventListener('resize', () => CHARTS.resize());
+    // пересчёт canvas ECharts под печать (иначе графики наезжают/обрезаются)
+    window.addEventListener('beforeprint', () => CHARTS.resize());
+    window.addEventListener('afterprint', () => CHARTS.resize());
   }
 
   /* --- старт --------------------------------------------------------------- */

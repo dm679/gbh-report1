@@ -242,12 +242,58 @@ window.REPORT = (function () {
    * РЕНДЕР
    * =======================================================================*/
   function render(model, state) {
+    renderPrintSummary(state, model);
     renderA(model.a);
     renderB(model.b);
     renderSeg(model.seg);
     renderC(model.c, state);
     renderD(model.d, state);
     renderE(model.e);
+  }
+
+  /* Шапка параметров фильтра — видна только при печати/PDF. */
+  const DATE_TYPE_RU = { DATE_CREATE: 'Дата создания', DATE_MODIFY: 'Дата изменения', CLOSEDATE: 'Дата завершения' };
+  const GRAN_RU = { day: 'по дням', week: 'по неделям', month: 'по месяцам', year: 'по годам' };
+  const BREAK_RU = { projects: 'Проекты', managers: 'Менеджеры', funnels: 'Воронки', agencies: 'Агентства', agents: 'Агенты' };
+
+  function renderPrintSummary(state, model) {
+    const el = document.getElementById('print-summary');
+    if (!el || !_refs) return;
+    const ALL = 'Все';
+
+    const catNames = (state.categories || []).map((id) => {
+      const c = _refs.categories.find((x) => String(x.id) === String(id));
+      return c ? c.name : id;
+    });
+    // карта STATUS_ID -> NAME по всем воронкам
+    const stageMap = {};
+    Object.keys(_refs.stagesByCat || {}).forEach((cid) => {
+      (_refs.stagesByCat[cid] || []).forEach((s) => { stageMap[s.STATUS_ID] = s.NAME; });
+    });
+    const stageNames = (state.stages || []).map((id) => stageMap[id] || id);
+    const mgrNames = (state.managers || []).map((id) => _refs.users[id] || id);
+    const ufNames = (key, arr) => (arr || []).map((v) => labelUf(key, v, _refs) || v);
+
+    const sumRange = (state.sumFrom || state.sumTo)
+      ? ((state.sumFrom ? UTIL.money(state.sumFrom) : '0') + ' – ' + (state.sumTo ? UTIL.money(state.sumTo) : '∞'))
+      : '—';
+    const join = (a) => (a && a.length ? a.join(', ') : ALL);
+
+    const rows = [
+      ['Период', `${state.from} – ${state.to} (${GRAN_RU[state.granularity] || ''})`],
+      ['Тип даты', DATE_TYPE_RU[state.dateType] || state.dateType],
+      ['Воронки', join(catNames)],
+      ['Этапы', join(stageNames)],
+      ['Сумма (USD)', sumRange],
+      ['Менеджеры', join(mgrNames)],
+      ['Проекты', join(ufNames('project', state.project))],
+      ['Агентства', join(ufNames('agency', state.agency))],
+      ['Агенты', join(ufNames('agent', state.agent))],
+      ['Разрез динамики', BREAK_RU[state.breakdown] || state.breakdown],
+      ['Сделок в отчёте', (model && model.meta ? UTIL.num(model.meta.count) : '')],
+    ];
+    const list = rows.map((r) => `<div class="ps-row"><span>${UTIL.esc(r[0])}:</span> ${UTIL.esc(r[1])}</div>`).join('');
+    el.innerHTML = `<div class="ps-title">Отчёт 1 — параметры выборки</div>${list}`;
   }
 
   const SEG_TITLES = {
